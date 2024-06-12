@@ -30,8 +30,6 @@ class PandaPizza(BaseAgent):
                     0,
                     np.pi * 3 / 4,
                     np.pi / 4,
-                    0.04,
-                    0.04,
                 ]
             ),
             pose=sapien.Pose(),
@@ -47,7 +45,7 @@ class PandaPizza(BaseAgent):
         "panda_joint6",
         "panda_joint7",
     ]
-    ee_link_name = "panda_hand_tcp"
+    ee_link_name = "pizza_peel"
 
     arm_stiffness = 1e3
     arm_damping = 1e2
