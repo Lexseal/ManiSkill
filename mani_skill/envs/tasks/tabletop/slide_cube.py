@@ -100,28 +100,19 @@ class SlideCubeEnv(BaseEnv):
         }
 
     def compute_dense_reward(self, obs: Any, action: torch.Tensor, info: Dict):
-        # tcp_to_obj_dist = torch.linalg.norm(
-        #     self.cube.pose.p - self.agent.tcp.pose.p, axis=1
-        # )
-        # reaching_reward = 1 - torch.tanh(5 * tcp_to_obj_dist)
-        # reward = reaching_reward
+        tcp_to_obj_dist = torch.linalg.norm(
+            self.cube.pose.p - self.agent.tcp.pose.p, axis=1
+        )
+        reaching_reward = 1 - torch.tanh(5 * tcp_to_obj_dist)
+        reward = reaching_reward
 
-        # is_grasped = info["is_grasped"]
-        # reward += is_grasped
+        tf = self.agent.tcp.pose.to_transformation_matrix()
+        z_axis = tf[..., :3, 2]
+        # take the last column of the z axis as reward
+        reward += 0.5 * z_axis[..., 2]
 
-        # obj_to_goal_dist = torch.linalg.norm(
-        #     self.goal_site.pose.p - self.cube.pose.p, axis=1
-        # )
-        # place_reward = 1 - torch.tanh(5 * obj_to_goal_dist)
-        # reward += place_reward * is_grasped
-
-        # static_reward = 1 - torch.tanh(
-        #     5 * torch.linalg.norm(self.agent.robot.get_qvel()[..., :-2], axis=1)
-        # )
-        # reward += static_reward * info["is_obj_placed"]
-
-        # reward[info["success"]] = 5
-        return 1
+        reward[info["success"]] = 5
+        return reward
 
     def compute_normalized_dense_reward(
         self, obs: Any, action: torch.Tensor, info: Dict
