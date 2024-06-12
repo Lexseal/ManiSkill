@@ -43,18 +43,19 @@ class SlideCubeEnv(BaseEnv):
             self.scene, half_size=self.cube_half_size, color=[1, 0, 0, 1], name="cube"
         )
 
-    def _generate_cube_init_pos(self):
+    def _generate_cube_init_pos(self, env_idx):
         """ get a batch of cube poses """
-        p = self.agent.tcp.pose.p
+        poses = self.agent.tcp.pose[env_idx]
+        p = poses.p
         b = p.shape[0]
         # then find the x and y axis of the pizza peel by reading their quaternion
-        tf = self.agent.tcp.pose.to_transformation_matrix()
+        tf = poses.to_transformation_matrix()
         x_axis = tf[..., :3, 0]
         y_axis = tf[..., :3, 1]
         z_axis = tf[..., :3, 2]
         # randomly shift p along x and y axis a little bit
-        p += x_axis * (torch.rand(b) - 0.5) * 0.2
-        p += y_axis * (torch.rand(b) - 0.5) * 0.2
+        p += x_axis * (torch.rand(b, 3) - 0.5) * 0.2
+        p += y_axis * (torch.rand(b, 3) - 0.5) * 0.2
         # set z to be just above the pizza peel by the height of the cube
         p += z_axis * (self.cube_half_size + 0.02)
         return p
@@ -63,7 +64,7 @@ class SlideCubeEnv(BaseEnv):
         with torch.device(self.device):
             b = len(env_idx)
             self.table_scene.initialize(env_idx)
-            xyz = self._generate_cube_init_pos()
+            xyz = self._generate_cube_init_pos(env_idx)
             qs = randomization.random_quaternions(b, lock_x=True, lock_y=True)
             self.cube.set_pose(Pose.create_from_pq(xyz, qs))
             
@@ -91,7 +92,7 @@ class SlideCubeEnv(BaseEnv):
 
     def evaluate(self):
         # success is if distance is less than the cube size and cube has signed distance less than 0
-        success = self._distance_cube_to_pizza_peel_hole() <= self.cube_half_size
+        success = self._distance_cube_to_pizza_peel_hole() <= self.cube_half_size * 2
         # print(self._distance_cube_to_pizza_peel_hole(), self._signed_distance_cube_to_pizza_peel())
         success = success & (self._signed_distance_cube_to_pizza_peel() < self.cube_half_size + 0.01 + 1e-5)
         return {
