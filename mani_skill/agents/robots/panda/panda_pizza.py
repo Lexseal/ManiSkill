@@ -17,7 +17,7 @@ from mani_skill.utils.structs.actor import Actor
 @register_agent()
 class PandaPizza(BaseAgent):
     uid = "panda_pizza"
-    urdf_path = f"{PACKAGE_ASSET_DIR}/robots/panda/panda_v2.urdf"
+    urdf_path = f"{PACKAGE_ASSET_DIR}/robots/panda/panda_pizza.urdf"
 
     keyframes = dict(
         rest=Keyframe(
