@@ -23,13 +23,7 @@ class PandaPizza(BaseAgent):
         rest=Keyframe(
             qpos=np.array(
                 [
-                    0.0,
-                    np.pi / 8,
-                    0,
-                    -np.pi * 5 / 8,
-                    0,
-                    np.pi * 3 / 4,
-                    np.pi / 4,
+                    2.50356918, -1.52198746, -0.63381054, -2.06692937, 1.99652445, 0.76468822, -1.71500206
                 ]
             ),
             pose=sapien.Pose(),

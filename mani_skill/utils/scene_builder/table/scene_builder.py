@@ -80,7 +80,9 @@ class TableSceneBuilder(SceneBuilder):
             self.env.agent.robot.set_pose(sapien.Pose([-0.615, 0, 0]))
         elif self.env.robot_uids == "panda_pizza":
             qpos = np.array(
-                [0.0, np.pi / 8, 0, -np.pi * 5 / 8, 0, np.pi * 3 / 4, -np.pi / 4]
+                [
+                    2.50356918, -1.52198746, -0.63381054, -2.06692937, 1.99652445, 0.76468822, -1.71500206
+                ]
             )
             qpos = (
                 self.env._episode_rng.normal(
@@ -88,7 +90,6 @@ class TableSceneBuilder(SceneBuilder):
                 )
                 + qpos
             )
-            qpos[:, -2:] = 0.04
             self.env.agent.reset(qpos)
             self.env.agent.robot.set_pose(sapien.Pose([-0.615, 0, 0]))
         elif self.env.robot_uids == "panda_wristcam":
