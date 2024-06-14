@@ -18,7 +18,7 @@ from mani_skill.utils.structs.pose import Pose
 class SlideCubeEnv(BaseEnv):
     SUPPORTED_ROBOTS = ["panda_pizza",]
     agent: PandaPizza
-    cube_half_size = 0.015
+    cube_half_size = 0.02
 
     def __init__(self, *args, robot_uids="panda_pizza", robot_init_qpos_noise=0.02, **kwargs):
         self.robot_init_qpos_noise = robot_init_qpos_noise
@@ -45,19 +45,28 @@ class SlideCubeEnv(BaseEnv):
 
     def _generate_cube_init_pos(self, env_idx):
         """ get a batch of cube poses """
-        poses = self.agent.tcp.pose[env_idx]
-        p = poses.p
-        b = p.shape[0]
+        # poses = self.agent.tcp.pose[env_idx]
+        base_pose = self.agent.base_link.pose[env_idx]
+        # use the base since it seems robot is reset after all other objects
+        # from base-0.6150,  0.0000,  0.0000) to tcp(-0.1,  0.01,  0.78), considering thickness of
+        p = base_pose.p + torch.tensor([0.515, 0.01, 0.81], device=base_pose.device) 
+        b = len(env_idx)
         # then find the x and y axis of the pizza peel by reading their quaternion
-        tf = poses.to_transformation_matrix()
-        x_axis = tf[..., :3, 0]
-        y_axis = tf[..., :3, 1]
-        z_axis = tf[..., :3, 2]
+        # tf = base_pose.to_transformation_matrix()
+        # x_axis = tf[..., :3, 0]
+        # y_axis = tf[..., :3, 1]
+        # z_axis = tf[..., :3, 2]
+        # # randomly shift p along x and y axis a little bit
+        # p += x_axis * (torch.rand(b, 3) - 0.5) * 0.2
+        # p += y_axis * (torch.rand(b, 3) - 0.5) * 0.2
+        # # set z to be just above the pizza peel by the height of the cube
+        # p += z_axis * (self.cube_half_size + 0.02)
+
         # randomly shift p along x and y axis a little bit
-        p += x_axis * (torch.rand(b, 3) - 0.5) * 0.2
-        p += y_axis * (torch.rand(b, 3) - 0.5) * 0.2
+        p[..., 0] += (torch.rand(b, ) - 0.5) * 0.25
+        p[..., 1] += (torch.rand(b, ) - 0.5) * 0.25
         # set z to be just above the pizza peel by the height of the cube
-        p += z_axis * (self.cube_half_size + 0.02)
+        p[..., 2] += torch.rand(b, ) * 0.01 + (self.cube_half_size + 0.02)
         return p
 
     def _initialize_episode(self, env_idx: torch.Tensor, options: dict):
@@ -65,7 +74,7 @@ class SlideCubeEnv(BaseEnv):
             b = len(env_idx)
             self.table_scene.initialize(env_idx)
             xyz = self._generate_cube_init_pos(env_idx)
-            qs = randomization.random_quaternions(b, lock_x=True, lock_y=True)
+            qs = randomization.random_quaternions(b) # lock_x=True, lock_y=True
             self.cube.set_pose(Pose.create_from_pq(xyz, qs))
             
     def _get_obs_extra(self, info: Dict):
@@ -75,7 +84,10 @@ class SlideCubeEnv(BaseEnv):
         )
         if "state" in self.obs_mode:
             obs.update(
-                obj_pose=self.cube.pose.raw_pose,
+                # obj_pose=self.cube.pose.raw_pose,
+                obj_state=self.cube.get_state(),
+                tcp_linear_velocity=self.agent.tcp.get_linear_velocity(),
+                tcp_angular_velocity=self.agent.tcp.get_angular_velocity(),
                 tcp_to_obj_pos=self.cube.pose.p - self.agent.tcp.pose.p,  # how far it is to the hole
             )
         return obs
@@ -94,7 +106,7 @@ class SlideCubeEnv(BaseEnv):
         # success is if distance is less than the cube size and cube has signed distance less than 0
         success = self._distance_cube_to_pizza_peel_hole() <= self.cube_half_size * 2
         # print(self._distance_cube_to_pizza_peel_hole(), self._signed_distance_cube_to_pizza_peel())
-        success = success & (self._signed_distance_cube_to_pizza_peel() < self.cube_half_size + 0.01 + 1e-5)
+        success = success & (0 <= (self.cube.pose.p[..., 2] - self.agent.tcp.pose.p[..., 2])) & (self._distance_cube_to_pizza_peel_hole() < self.cube_half_size + 0.01)
         return {
             "success": success,
             "is_robot_static": self.agent.is_static(0.2),
@@ -111,6 +123,9 @@ class SlideCubeEnv(BaseEnv):
         z_axis = tf[..., :3, 2]
         # take the last column of the z axis as reward
         reward += 0.5 * z_axis[..., 2]
+        dropped = (self.cube.pose.p[..., 2] - self.agent.tcp.pose.p[..., 2]) < 0
+        reward[dropped] = -5
+
 
         reward[info["success"]] = 5
         return reward

@@ -40,6 +40,7 @@ class PandaPizza(BaseAgent):
         "panda_joint7",
     ]
     ee_link_name = "pizza_peel"
+    base_link_name = "panda_link0"
 
     arm_stiffness = 1e3
     arm_damping = 1e2
@@ -61,8 +62,8 @@ class PandaPizza(BaseAgent):
         )
         arm_pd_joint_delta_pos = PDJointPosControllerConfig(
             self.arm_joint_names,
-            lower=-0.1,
-            upper=0.1,
+            -0.1,
+            0.1,
             stiffness=self.arm_stiffness,
             damping=self.arm_damping,
             force_limit=self.arm_force_limit,
@@ -169,6 +170,9 @@ class PandaPizza(BaseAgent):
     def _after_init(self):
         self.tcp = sapien_utils.get_obj_by_name(
             self.robot.get_links(), self.ee_link_name
+        )
+        self.base_link = sapien_utils.get_obj_by_name(
+            self.robot.get_links(), self.base_link_name
         )
 
         self.queries: Dict[
