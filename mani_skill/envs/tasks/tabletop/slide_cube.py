@@ -85,7 +85,10 @@ class SlideCubeEnv(BaseEnv):
         if "state" in self.obs_mode:
             obs.update(
                 # obj_pose=self.cube.pose.raw_pose,
-                obj_state=self.cube.get_state(),
+                # obj_state=self.cube.get_state()[..., -6:],
+                # cube_q=self.cube.pose.q,
+                cube_angular_velocity=self.cube.get_angular_velocity(),
+                cube_linear_velocity=self.cube.get_linear_velocity(),
                 tcp_linear_velocity=self.agent.tcp.get_linear_velocity(),
                 tcp_angular_velocity=self.agent.tcp.get_angular_velocity(),
                 tcp_to_obj_pos=self.cube.pose.p - self.agent.tcp.pose.p,  # how far it is to the hole
